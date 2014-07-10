@@ -39,6 +39,9 @@ LOCAL_SRC_FILES:= \
 	media_format_layer.cpp \
 	surface_texture_client_hybris.cpp \
 	decoding_service.cpp \
+	camera_record_service.cpp \
+	record_track.cpp \
+	record_thread.cpp \
 	media_recorder_layer.cpp \
 	media_recorder.cpp \
 	media_recorder_client.cpp \
@@ -69,6 +72,8 @@ LOCAL_C_INCLUDES := \
 	frameworks/base/include/media/stagefright \
 	frameworks/base/include/media \
 	frameworks/av/media \
+	frameworks/av/include \
+	frameworks/native/include \
 	frameworks/av/services/camera/libcameraservice
 
 include $(BUILD_SHARED_LIBRARY)
