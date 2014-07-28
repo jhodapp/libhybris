@@ -64,7 +64,8 @@ RecordThread::RecordThread(uint32_t sampleRate, audio_channel_mask_t channelMask
       mRsmpOutBuffer(NULL),
       mRsmpInBuffer(NULL),
       mReqChannelCount(popcount(channelMask)),
-      mReqSampleRate(sampleRate)
+      mReqSampleRate(sampleRate),
+      mFramestoDrop(0)
 {
     REPORT_FUNCTION();
 
@@ -196,6 +197,7 @@ bool RecordThread::threadLoop()
 #endif
 
             buffer.frameCount = mFrameCount;
+            ALOGV("Calling mActiveTrack->getNextBuffer()");
             status_t status = mActiveTrack->getNextBuffer(&buffer);
             if (status == NO_ERROR) {
                 readOnce = true;
@@ -238,6 +240,7 @@ bool RecordThread::threadLoop()
                                 mRsmpInIndex = 0;
                             }
                             // Read from the named pipe /dev/socket/micshm
+                            ALOGD("Calling this->readPipe()");
                             mBytesRead = readPipe();
                             if (mBytesRead <= 0) {
                                 if ((mBytesRead < 0) && (mActiveTrack->mState == RecordTrack::ACTIVE))
@@ -284,6 +287,7 @@ bool RecordThread::threadLoop()
                 }
 #endif
                 if (mFramestoDrop == 0) {
+                    ALOGV("Calling releaseBuffer(line: %d)", __LINE__);
                     mActiveTrack->releaseBuffer(&buffer);
                 } else {
                     if (mFramestoDrop > 0) {
