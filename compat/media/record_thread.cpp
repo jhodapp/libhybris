@@ -71,11 +71,6 @@ RecordThread::RecordThread(uint32_t sampleRate, audio_channel_mask_t channelMask
     snprintf(mName, kNameLength, "AudioIn_%X", id);
     readInputParameters();
 
-    // Open read access to the named pipe that lives on the application side
-    m_fifoFd = open("/dev/socket/micshm", O_RDONLY | O_NONBLOCK);
-    if (m_fifoFd < 0) {
-        ALOGE("Failed to read from named pipe /dev/socket/micshm %s", strerror(errno));
-    }
 }
 
 RecordThread::~RecordThread()
@@ -566,41 +561,50 @@ void RecordThread::readInputParameters()
     mSampleRate = 44100;
     mChannelMask = 0x10;   // FIXME: where should this come from?
     mChannelCount = popcount(mChannelMask);
+    mFormat = AUDIO_FORMAT_PCM_16_BIT;
+    mFrameSize = 2;
     mBufferSize = MIC_READ_BUF_SIZE * sizeof(int16_t);
     ALOGD("mBufferSize: %d", mBufferSize);
-    mFormat = AUDIO_FORMAT_PCM_16_BIT;
-
-    mFrameSize = 2;
-    mBufferSize = MIC_READ_BUF_SIZE;
     mFrameCount = mBufferSize / mFrameSize;
     mRsmpInBuffer = new int16_t[mBufferSize];
     mRsmpInIndex = mFrameCount;
 }
 
-ssize_t RecordThread::readPipe() const
+bool RecordThread::openPipe()
+{
+    if (m_fifoFd > 0) {
+        ALOGW("/dev/socket/micshm already opened, not opening twice");
+        return true;
+    }
+
+    // Open read access to the named pipe that lives on the application side
+    m_fifoFd = open("/dev/socket/micshm", O_RDONLY); //| O_NONBLOCK);
+    if (m_fifoFd < 0) {
+        ALOGE("Failed to open named pipe /dev/socket/micshm %s", strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
+ssize_t RecordThread::readPipe()
 {
     REPORT_FUNCTION();
 
     if (m_fifoFd < 0) {
-        ALOGE("Can't read from named pipe /dev/socket/micshm, it hasn't been opened");
-        return 0;
+        openPipe();
     }
 
     ssize_t size = 0;
-    // An errno of EAGAIN means that read would block in this case, so try to read again until we
-    // read something
-    //do {
-        memset(mRsmpInBuffer, 0, mBufferSize);
-        size = read(m_fifoFd, mRsmpInBuffer, mBufferSize);
-        if (size < 0)
-        {
-            ALOGE("Failed to read in data from named pipe /dev/socket/micshm: %s", strerror(errno));
-            if (errno == EAGAIN)
-                usleep(5);
-        }
-        else
-            ALOGD("Read in %d bytes into mRsmpInBuffer", size);
-    //} while (/*size > 0 ||*/ errno == EAGAIN);
+    //memset(mRsmpInBuffer, 0, mBufferSize);
+    size = read(m_fifoFd, mRsmpInBuffer, mBufferSize);
+    if (size < 0)
+    {
+        ALOGE("Failed to read in data from named pipe /dev/socket/micshm: %s", strerror(errno));
+        size = 0;
+    }
+    else
+        ALOGD("Read in %d bytes into mRsmpInBuffer", size);
 
     return size;
 }

@@ -163,7 +163,8 @@ public:
 
 private:
     // Read in audio data from named pipe
-    ssize_t readPipe() const;
+    bool openPipe();
+    ssize_t readPipe();
     void clearSyncStartEvent();
 
     //AudioStreamIn                       *mInput;
