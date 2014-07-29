@@ -200,14 +200,23 @@ bool RecordThread::threadLoop()
             buffer.frameCount = mFrameCount;
             ALOGV("Calling mActiveTrack->getNextBuffer()");
             status_t status = mActiveTrack->getNextBuffer(&buffer);
+            ALOGD("buffer.raw[0]: 0x%x", buffer.raw + 2);
+            ALOGD("buffer.raw[1]: 0x%x", buffer.raw + 4);
+            ALOGD("buffer.raw[2]: 0x%x", buffer.raw + 6);
+            ALOGD("buffer.raw[3]: 0x%x", buffer.raw + 8);
             if (status == NO_ERROR) {
                 readOnce = true;
                 size_t framesOut = buffer.frameCount;
+                ALOGD("framesOut: %d", framesOut);
                 //if (mResampler == NULL) {
                     // no resampling
                     while (framesOut) {
                         size_t framesIn = mFrameCount - mRsmpInIndex;
+                        ALOGD("framesIn: %d", framesIn);
+                        ALOGD("mFrameCount: %d", mFrameCount);
+                        ALOGD("mRsmpInIndex: %d", mRsmpInIndex);
                         if (framesIn) {
+                            ALOGD("Creating src and dst int8_t pointers");
                             int8_t *src = (int8_t *)mRsmpInBuffer + mRsmpInIndex * mFrameSize;
                             int8_t *dst = buffer.i8 + (buffer.frameCount - framesOut) *
                                     mActiveTrack->mFrameSize;
@@ -216,21 +225,21 @@ bool RecordThread::threadLoop()
                             mRsmpInIndex += framesIn;
                             framesOut -= framesIn;
                             if (mChannelCount == mReqChannelCount) {
+                                ALOGD("Doing direct memcpy from src to dst");
                                 memcpy(dst, src, framesIn * mFrameSize);
                             } else {
                                 if (mChannelCount == 1) {
-#if 1
+                                    ALOGD("Upmixing stereo from mono");
                                     upmix_to_stereo_i16_from_mono_i16((int16_t *)dst,
                                             (int16_t *)src, framesIn);
-#endif
                                 } else {
-#if 1
+                                    ALOGD("Downmixing mono from stereo");
                                     downmix_to_mono_i16_from_stereo_i16((int16_t *)dst,
                                             (int16_t *)src, framesIn);
-#endif
                                 }
                             }
                         }
+                        ALOGD("framesOut && mFrameCount: %d, mRsmpInIndex: %d", framesOut && mFrameCount, mRsmpInIndex);
                         if (framesOut && mFrameCount == mRsmpInIndex) {
                             void *readInto;
                             if (framesOut == mFrameCount && mChannelCount == mReqChannelCount) {
@@ -572,16 +581,23 @@ void RecordThread::readInputParameters()
     REPORT_FUNCTION();
 
     // TODO: Add the rest of the input parameters
-    mSampleRate = 44100;
+    mSampleRate = 48000;
+    ALOGD("mSampleRate: %d", mSampleRate);
     mChannelMask = 0x10;   // FIXME: where should this come from?
+    ALOGD("mChannelMask: %d", mChannelMask);
     mChannelCount = popcount(mChannelMask);
+    ALOGD("mChannelCount: %d", mChannelCount);
     mFormat = AUDIO_FORMAT_PCM_16_BIT;
+    ALOGD("mFormat: %d", mFormat);
     mFrameSize = 2;
+    ALOGD("mFrameSize: %d", mFrameSize);
     mBufferSize = MIC_READ_BUF_SIZE * sizeof(int16_t);
     ALOGD("mBufferSize: %d", mBufferSize);
     mFrameCount = mBufferSize / mFrameSize;
+    ALOGD("mFrameCount: %d", mFrameCount);
     mRsmpInBuffer = new int16_t[mBufferSize];
     mRsmpInIndex = mFrameCount;
+    ALOGD("mRsmpInIndex: %d", mRsmpInIndex);
 }
 
 bool RecordThread::openPipe()

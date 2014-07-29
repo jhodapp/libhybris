@@ -92,7 +92,7 @@ extern "C" {
         ANDROID_AUDIO_ENCODER_AAC_ELD = 5
     } AudioEncoder;
 
-    #define MIC_READ_BUF_SIZE 1024
+    #define MIC_READ_BUF_SIZE 960
 
     // Callback types
     typedef void (*on_recorder_msg_error)(void *context);

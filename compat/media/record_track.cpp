@@ -85,6 +85,7 @@ RecordTrack::RecordTrack(ThreadBase *thread,
     ALOGD("Creating track with buffers @ %d bytes", bufferSize);
 
     if (mMemoryDealer != 0) {
+        ALOGD("Allocated mCblkMemory of size: %d", size);
         mCblkMemory = mMemoryDealer->allocate(size);
         if (mCblkMemory != 0) {
             mCblk = static_cast<audio_track_cblk_t *>(mCblkMemory->pointer());
@@ -117,6 +118,7 @@ RecordTrack::RecordTrack(ThreadBase *thread,
     }
 
     if (mCblk != NULL) {
+        ALOGD("Creating new AudioRecordServerProxy, mBuffer: %p, frameCount: %d, mFrameSize: %d", mBuffer, frameCount, mFrameSize);
         mAudioRecordServerProxy = new AudioRecordServerProxy(mCblk, mBuffer, frameCount, mFrameSize);
         mServerProxy = mAudioRecordServerProxy;
     }
