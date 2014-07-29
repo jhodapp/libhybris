@@ -63,6 +63,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libEGL \
 	libGLESv2 \
 	libmedia \
+	libaudioutils \
 	libcameraservice \
 	libmediaplayerservice
 
@@ -74,6 +75,7 @@ LOCAL_C_INCLUDES := \
 	frameworks/av/media \
 	frameworks/av/include \
 	frameworks/native/include \
+	system/media/audio_utils/include \
 	frameworks/av/services/camera/libcameraservice
 
 include $(BUILD_SHARED_LIBRARY)

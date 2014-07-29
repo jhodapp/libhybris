@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 
 #include <hybris/media/media_recorder_layer.h>
+#include <audio_utils/primitives.h>
 
 #include <utils/Log.h>
 
@@ -218,12 +219,12 @@ bool RecordThread::threadLoop()
                                 memcpy(dst, src, framesIn * mFrameSize);
                             } else {
                                 if (mChannelCount == 1) {
-#if 0
+#if 1
                                     upmix_to_stereo_i16_from_mono_i16((int16_t *)dst,
                                             (int16_t *)src, framesIn);
 #endif
                                 } else {
-#if 0
+#if 1
                                     downmix_to_mono_i16_from_stereo_i16((int16_t *)dst,
                                             (int16_t *)src, framesIn);
 #endif
