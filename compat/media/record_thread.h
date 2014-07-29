@@ -164,7 +164,7 @@ public:
 private:
     // Read in audio data from named pipe
     bool openPipe();
-    ssize_t readPipe();
+    ssize_t readPipe(void *buffer, size_t size);
     void clearSyncStartEvent();
 
     //AudioStreamIn                       *mInput;

@@ -200,10 +200,6 @@ bool RecordThread::threadLoop()
             buffer.frameCount = mFrameCount;
             ALOGV("Calling mActiveTrack->getNextBuffer()");
             status_t status = mActiveTrack->getNextBuffer(&buffer);
-            ALOGD("buffer.raw[0]: 0x%x", buffer.raw + 2);
-            ALOGD("buffer.raw[1]: 0x%x", buffer.raw + 4);
-            ALOGD("buffer.raw[2]: 0x%x", buffer.raw + 6);
-            ALOGD("buffer.raw[3]: 0x%x", buffer.raw + 8);
             if (status == NO_ERROR) {
                 readOnce = true;
                 size_t framesOut = buffer.frameCount;
@@ -243,15 +239,17 @@ bool RecordThread::threadLoop()
                         if (framesOut && mFrameCount == mRsmpInIndex) {
                             void *readInto;
                             if (framesOut == mFrameCount && mChannelCount == mReqChannelCount) {
+                                ALOGD("Using buffer.raw");
                                 readInto = buffer.raw;
                                 framesOut = 0;
                             } else {
+                                ALOGD("Using mRsmpInBuffer");
                                 readInto = mRsmpInBuffer;
                                 mRsmpInIndex = 0;
                             }
                             // Read from the named pipe /dev/socket/micshm
                             ALOGD("Calling this->readPipe()");
-                            mBytesRead = readPipe();
+                            mBytesRead = readPipe(readInto, mBufferSize);
                             if (mBytesRead <= 0) {
                                 if ((mBytesRead < 0) && (mActiveTrack->mState == RecordTrack::ACTIVE))
                                 {
@@ -537,7 +535,7 @@ status_t RecordThread::getNextBuffer(AudioBufferProvider::Buffer* buffer, int64_
 
     if (framesReady == 0) {
         // Read from the named pipe /dev/socket/micshm
-        mBytesRead = readPipe();
+        mBytesRead = readPipe(mRsmpInBuffer, mBufferSize);
         if (mBytesRead <= 0) {
             if ((mBytesRead < 0) && (mActiveTrack->mState == RecordTrack::ACTIVE)) {
                 ALOGE("RecordThread::getNextBuffer() Error reading audio input");
@@ -617,26 +615,31 @@ bool RecordThread::openPipe()
     return true;
 }
 
-ssize_t RecordThread::readPipe()
+ssize_t RecordThread::readPipe(void *buffer, size_t size)
 {
     REPORT_FUNCTION();
+
+    if (buffer == NULL || size == 0)
+    {
+        ALOGE("Can't read named pipe, buffer is NULL or size is 0");
+        return 0;
+    }
 
     if (m_fifoFd < 0) {
         openPipe();
     }
 
-    ssize_t size = 0;
     //memset(mRsmpInBuffer, 0, mBufferSize);
-    size = read(m_fifoFd, mRsmpInBuffer, mBufferSize);
-    if (size < 0)
+    ssize_t readSize = read(m_fifoFd, buffer, size);
+    if (readSize < 0)
     {
         ALOGE("Failed to read in data from named pipe /dev/socket/micshm: %s", strerror(errno));
-        size = 0;
+        readSize = 0;
     }
     else
-        ALOGD("Read in %d bytes into mRsmpInBuffer", size);
+        ALOGD("Read in %d bytes into mRsmpInBuffer", readSize);
 
-    return size;
+    return readSize;
 }
 
 } // namespace android

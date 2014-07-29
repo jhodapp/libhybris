@@ -152,6 +152,7 @@ void RecordTrack::stop()
     if (thread != 0) {
         RecordThread *recordThread = (RecordThread *)thread.get();
         if (recordThread->stop(this)) {
+            ALOGV("Tried to stop RecordThread instance");
             //AudioSystem::stopInput(recordThread->id());
         }
     }
