@@ -293,7 +293,7 @@ bool RecordThread::threadLoop()
                     if (mFramestoDrop > 0) {
                         mFramestoDrop -= buffer.frameCount;
                         if (mFramestoDrop <= 0) {
-                            //clearSyncStartEvent();
+                            clearSyncStartEvent();
                         }
                     } else {
                         mFramestoDrop += buffer.frameCount;
@@ -303,7 +303,7 @@ bool RecordThread::threadLoop()
                                   (mFramestoDrop >= 0) ? "timed out" : "cancelled",
                                   mActiveTrack->sessionId(),
                                   (mSyncStartEvent != 0) ? mSyncStartEvent->triggerSession() : 0);
-                            //clearSyncStartEvent();
+                            clearSyncStartEvent();
                         }
                     }
                 }
@@ -439,7 +439,7 @@ status_t RecordThread::start(RecordTrack* recordTrack,
 
         if (status != NO_ERROR) {
             mActiveTrack.clear();
-            //clearSyncStartEvent();
+            clearSyncStartEvent();
             return status;
         }
         mRsmpInIndex = mFrameCount;
@@ -471,9 +471,18 @@ status_t RecordThread::start(RecordTrack* recordTrack,
 
 startError:
     //AudioSystem::stopInput(mId);
-    //clearSyncStartEvent();
+    clearSyncStartEvent();
     close(m_fifoFd);
     return status;
+}
+
+void RecordThread::clearSyncStartEvent()
+{
+    if (mSyncStartEvent != 0) {
+        mSyncStartEvent->cancel();
+    }
+    mSyncStartEvent.clear();
+    mFramestoDrop = 0;
 }
 
 bool RecordThread::stop(RecordTrack* recordTrack)
