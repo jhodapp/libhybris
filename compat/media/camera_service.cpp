@@ -25,14 +25,6 @@
 #include "media_recorder.h"
 #include <CameraService.h>
 
-//#define USE_AUDIOFLINGER
-
-#ifdef USE_AUDIOFLINGER
-    #include <AudioFlinger.h>
-    #include <AudioPolicyService.h>
-    #include <MediaPlayerService.h>
-#endif
-
 #include <signal.h>
 
 #define REPORT_FUNCTION() ALOGV("%s \n", __PRETTY_FUNCTION__)
@@ -51,14 +43,8 @@ int main(int argc, char** argv)
     // Instantiate the in-process MediaRecorderFactory which is responsible
     // for creating a new IMediaRecorder (MediaRecorder) instance over Binder
     MediaRecorderFactory::instantiate();
-#ifdef USE_AUDIOFLINGER
-    AudioFlinger::instantiate();
-    MediaPlayerService::instantiate();
-    AudioPolicyService::instantiate();
-#else
     // Enable audio recording for camera recording
     CameraRecordService::instantiate();
-#endif
     CameraService::instantiate();
     ProcessState::self()->startThreadPool();
     IPCThreadState::self()->joinThreadPool();

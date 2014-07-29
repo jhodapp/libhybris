@@ -118,7 +118,6 @@ RecordTrack::RecordTrack(ThreadBase *thread,
     }
 
     if (mCblk != NULL) {
-        ALOGD("Creating new AudioRecordServerProxy, mBuffer: %p, frameCount: %d, mFrameSize: %d", mBuffer, frameCount, mFrameSize);
         mAudioRecordServerProxy = new AudioRecordServerProxy(mCblk, mBuffer, frameCount, mFrameSize);
         mServerProxy = mAudioRecordServerProxy;
     }

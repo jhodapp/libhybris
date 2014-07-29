@@ -107,8 +107,6 @@ bool RecordThread::threadLoop()
 
     AudioBufferProvider::Buffer buffer;
     sp<RecordTrack> activeTrack;
-    //Vector< sp<EffectChain> > effectChains;
-
     nsecs_t lastWarning = 0;
 
     //inputStandBy();
@@ -180,22 +178,14 @@ bool RecordThread::threadLoop()
                     mStandby = false;
                 }
             }
-
-            //lockEffectChains_l(effectChains);
         }
 
         if (mActiveTrack != 0) {
             if (mActiveTrack->mState != RecordTrack::ACTIVE &&
                 mActiveTrack->mState != RecordTrack::RESUMING) {
-                //unlockEffectChains(effectChains);
                 usleep(kRecordThreadSleepUs);
                 continue;
             }
-#if 0
-            for (size_t i = 0; i < effectChains.size(); i ++) {
-                effectChains[i]->process_l();
-            }
-#endif
 
             buffer.frameCount = mFrameCount;
             ALOGV("Calling mActiveTrack->getNextBuffer()");
@@ -204,96 +194,65 @@ bool RecordThread::threadLoop()
                 readOnce = true;
                 size_t framesOut = buffer.frameCount;
                 ALOGD("framesOut: %d", framesOut);
-                //if (mResampler == NULL) {
-                    // no resampling
-                    while (framesOut) {
-                        size_t framesIn = mFrameCount - mRsmpInIndex;
-                        ALOGD("framesIn: %d", framesIn);
-                        ALOGD("mFrameCount: %d", mFrameCount);
-                        ALOGD("mRsmpInIndex: %d", mRsmpInIndex);
-                        if (framesIn) {
-                            ALOGD("Creating src and dst int8_t pointers");
-                            int8_t *src = (int8_t *)mRsmpInBuffer + mRsmpInIndex * mFrameSize;
-                            int8_t *dst = buffer.i8 + (buffer.frameCount - framesOut) *
-                                    mActiveTrack->mFrameSize;
-                            if (framesIn > framesOut)
-                                framesIn = framesOut;
-                            mRsmpInIndex += framesIn;
-                            framesOut -= framesIn;
-                            if (mChannelCount == mReqChannelCount) {
-                                ALOGD("Doing direct memcpy from src to dst");
-                                memcpy(dst, src, framesIn * mFrameSize);
+                while (framesOut) {
+                    size_t framesIn = mFrameCount - mRsmpInIndex;
+                    ALOGD("framesIn: %d", framesIn);
+                    ALOGD("mFrameCount: %d", mFrameCount);
+                    ALOGD("mRsmpInIndex: %d", mRsmpInIndex);
+                    if (framesIn) {
+                        ALOGD("Creating src and dst int8_t pointers");
+                        int8_t *src = (int8_t *)mRsmpInBuffer + mRsmpInIndex * mFrameSize;
+                        int8_t *dst = buffer.i8 + (buffer.frameCount - framesOut) *
+                            mActiveTrack->mFrameSize;
+                        if (framesIn > framesOut)
+                            framesIn = framesOut;
+                        mRsmpInIndex += framesIn;
+                        framesOut -= framesIn;
+                        if (mChannelCount == mReqChannelCount) {
+                            ALOGD("Doing direct memcpy from src to dst");
+                            memcpy(dst, src, framesIn * mFrameSize);
+                        } else {
+                            if (mChannelCount == 1) {
+                                ALOGD("Upmixing stereo from mono");
+                                upmix_to_stereo_i16_from_mono_i16((int16_t *)dst,
+                                        (int16_t *)src, framesIn);
                             } else {
-                                if (mChannelCount == 1) {
-                                    ALOGD("Upmixing stereo from mono");
-                                    upmix_to_stereo_i16_from_mono_i16((int16_t *)dst,
-                                            (int16_t *)src, framesIn);
-                                } else {
-                                    ALOGD("Downmixing mono from stereo");
-                                    downmix_to_mono_i16_from_stereo_i16((int16_t *)dst,
-                                            (int16_t *)src, framesIn);
-                                }
-                            }
-                        }
-                        ALOGD("framesOut && mFrameCount: %d, mRsmpInIndex: %d", framesOut && mFrameCount, mRsmpInIndex);
-                        if (framesOut && mFrameCount == mRsmpInIndex) {
-                            void *readInto;
-                            if (framesOut == mFrameCount && mChannelCount == mReqChannelCount) {
-                                ALOGD("Using buffer.raw");
-                                readInto = buffer.raw;
-                                framesOut = 0;
-                            } else {
-                                ALOGD("Using mRsmpInBuffer");
-                                readInto = mRsmpInBuffer;
-                                mRsmpInIndex = 0;
-                            }
-                            // Read from the named pipe /dev/socket/micshm
-                            ALOGD("Calling this->readPipe()");
-                            mBytesRead = readPipe(readInto, mBufferSize);
-                            if (mBytesRead <= 0) {
-                                if ((mBytesRead < 0) && (mActiveTrack->mState == RecordTrack::ACTIVE))
-                                {
-                                    ALOGE("Error reading audio input");
-                                    // Force input into standby so that it tries to
-                                    // recover at next read attempt
-                                    //inputStandBy();
-                                    usleep(kRecordThreadSleepUs);
-                                }
-                                mRsmpInIndex = mFrameCount;
-                                framesOut = 0;
-                                buffer.frameCount = 0;
+                                ALOGD("Downmixing mono from stereo");
+                                downmix_to_mono_i16_from_stereo_i16((int16_t *)dst,
+                                        (int16_t *)src, framesIn);
                             }
                         }
                     }
-                //}
-#if 0
-                else {
-                    // resampling
-
-                    // resampler accumulates, but we only have one source track
-                    memset(mRsmpOutBuffer, 0, framesOut * FCC_2 * sizeof(int32_t));
-                    // alter output frame count as if we were expecting stereo samples
-                    if (mChannelCount == 1 && mReqChannelCount == 1) {
-                        framesOut >>= 1;
+                    ALOGD("framesOut && mFrameCount: %d, mRsmpInIndex: %d", framesOut && mFrameCount, mRsmpInIndex);
+                    if (framesOut && mFrameCount == mRsmpInIndex) {
+                        void *readInto;
+                        if (framesOut == mFrameCount && mChannelCount == mReqChannelCount) {
+                            ALOGD("Using buffer.raw");
+                            readInto = buffer.raw;
+                            framesOut = 0;
+                        } else {
+                            ALOGD("Using mRsmpInBuffer");
+                            readInto = mRsmpInBuffer;
+                            mRsmpInIndex = 0;
+                        }
+                        // Read from the named pipe /dev/socket/micshm
+                        ALOGD("Calling this->readPipe()");
+                        mBytesRead = readPipe(readInto, mBufferSize);
+                        if (mBytesRead <= 0) {
+                            if ((mBytesRead < 0) && (mActiveTrack->mState == RecordTrack::ACTIVE))
+                            {
+                                ALOGE("Error reading audio input");
+                                // Force input into standby so that it tries to
+                                // recover at next read attempt
+                                //inputStandBy();
+                                usleep(kRecordThreadSleepUs);
+                            }
+                            mRsmpInIndex = mFrameCount;
+                            framesOut = 0;
+                            buffer.frameCount = 0;
+                        }
                     }
-                    mResampler->resample(mRsmpOutBuffer, framesOut,
-                            this /* AudioBufferProvider* */);
-                    // ditherAndClamp() works as long as all buffers returned by
-                    // mActiveTrack->getNextBuffer() are 32 bit aligned which should be always true.
-                    if (mChannelCount == 2 && mReqChannelCount == 1) {
-                        // temporarily type pun mRsmpOutBuffer from Q19.12 to int16_t
-                        ditherAndClamp(mRsmpOutBuffer, mRsmpOutBuffer, framesOut);
-                        // the resampler always outputs stereo samples:
-                        // do post stereo to mono conversion
-                        downmix_to_mono_i16_from_stereo_i16(buffer.i16, (int16_t *)mRsmpOutBuffer,
-                                framesOut);
-                    } else {
-                        ditherAndClamp((int32_t *)buffer.raw, mRsmpOutBuffer, framesOut);
-                    }
-                    // now done with mRsmpOutBuffer
-
                 }
-#endif
                 if (mFramestoDrop == 0) {
                     ALOGV("Calling releaseBuffer(line: %d)", __LINE__);
                     mActiveTrack->releaseBuffer(&buffer);
@@ -335,9 +294,6 @@ bool RecordThread::threadLoop()
                 usleep(kRecordThreadSleepUs);
             }
         }
-        // enable changes in effect chain
-        //unlockEffectChains(effectChains);
-        //effectChains.clear();
     }
 
     //standby();
@@ -393,25 +349,14 @@ sp<RecordTrack> RecordThread::createRecordTrack_l(
         track = new RecordTrack(this, sampleRate,
                       format, channelMask, frameCount, 0 /* sharedBuffer */, sessionId, uid);
 
-#if 1
         if (track->getCblk() == 0) {
             ALOGE("createRecordTrack_l() no control block");
             lStatus = NO_MEMORY;
             track.clear();
             goto Exit;
         }
-#else
-        ALOGI("Not checking track->getCblk because it seems unnecessary");
-#endif
         mTracks.add(track);
 
-#if 0
-        // disable AEC and NS if the device is a BT SCO headset supporting those pre processings
-        bool suspend = audio_is_bluetooth_sco_device(mInDevice) &&
-                        mAudioFlinger->btNrecIsOff();
-        setEffectSuspended_l(FX_IID_AEC, suspend, sessionId);
-        setEffectSuspended_l(FX_IID_NS, suspend, sessionId);
-#endif
     }
     lStatus = NO_ERROR;
 
@@ -452,11 +397,7 @@ status_t RecordThread::start(RecordTrack* recordTrack,
         }
         mRsmpInIndex = mFrameCount;
         mBytesRead = 0;
-#if 0
-        if (mResampler != NULL) {
-            mResampler->reset();
-        }
-#endif
+
         mActiveTrack->mState = RecordTrack::RESUMING;
         // signal thread to start
         ALOGV("Signal record thread");
@@ -515,16 +456,6 @@ bool RecordThread::stop(RecordTrack* recordTrack)
     return false;
 }
 
-#if 0
-AudioStreamIn* RecordThread::clearInput()
-{
-}
-
-audio_stream_t* RecordThread::stream() const
-{
-}
-#endif
-
 status_t RecordThread::getNextBuffer(AudioBufferProvider::Buffer* buffer, int64_t pts)
 {
     REPORT_FUNCTION();
@@ -578,7 +509,8 @@ void RecordThread::readInputParameters()
 {
     REPORT_FUNCTION();
 
-    // TODO: Add the rest of the input parameters
+    // TODO: these are all hardcoded for right now, they should be
+    // obtained through more dynamic means
     mSampleRate = 48000;
     ALOGD("mSampleRate: %d", mSampleRate);
     mChannelMask = 0x10;   // FIXME: where should this come from?
@@ -629,7 +561,6 @@ ssize_t RecordThread::readPipe(void *buffer, size_t size)
         openPipe();
     }
 
-    //memset(mRsmpInBuffer, 0, mBufferSize);
     ssize_t readSize = read(m_fifoFd, buffer, size);
     if (readSize < 0)
     {

@@ -93,8 +93,6 @@ public:
     // RefBase
     virtual void        onFirstRef();
 
-    //virtual status_t    initCheck() const { return (mInput == NULL) ? NO_INIT : NO_ERROR; }
-
     sp<RecordTrack> createRecordTrack_l(
             uint32_t sampleRate,
             audio_format_t format,
@@ -112,11 +110,6 @@ public:
     // ask the thread to stop the specified track, and
     // return true if the caller should then do it's part of the stopping process
     bool stop(RecordTrack* recordTrack);
-
-#if 0
-    AudioStreamIn* clearInput();
-    virtual audio_stream_t* stream() const;
-#endif
 
     // AudioBufferProvider interface
     virtual status_t getNextBuffer(AudioBufferProvider::Buffer* buffer, int64_t pts);
@@ -167,7 +160,6 @@ private:
     ssize_t readPipe(void *buffer, size_t size);
     void clearSyncStartEvent();
 
-    //AudioStreamIn                       *mInput;
     //SortedVector < sp<RecordTrack> >    mTracks;
     // mActiveTrack has dual roles:  it indicates the current active track, and
     // is used together with mStartStopCond to indicate start()/stop() progress
