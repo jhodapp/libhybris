@@ -13,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Authored by: Jim Hodapp <jim.hodapp@canonical.com>
  */
 
 #define LOG_NDEBUG 0
@@ -85,7 +87,6 @@ RecordTrack::RecordTrack(ThreadBase *thread,
     ALOGD("Creating track with buffers @ %d bytes", bufferSize);
 
     if (mMemoryDealer != 0) {
-        ALOGD("Allocated mCblkMemory of size: %d", size);
         mCblkMemory = mMemoryDealer->allocate(size);
         if (mCblkMemory != 0) {
             mCblk = static_cast<audio_track_cblk_t *>(mCblkMemory->pointer());
@@ -121,8 +122,6 @@ RecordTrack::RecordTrack(ThreadBase *thread,
         mAudioRecordServerProxy = new AudioRecordServerProxy(mCblk, mBuffer, frameCount, mFrameSize);
         mServerProxy = mAudioRecordServerProxy;
     }
-
-    ALOGD("Finished RecordTrack ctor");
 }
 
 RecordTrack::~RecordTrack()
@@ -151,8 +150,7 @@ void RecordTrack::stop()
     if (thread != 0) {
         RecordThread *recordThread = (RecordThread *)thread.get();
         if (recordThread->stop(this)) {
-            ALOGV("Tried to stop RecordThread instance");
-            //AudioSystem::stopInput(recordThread->id());
+            ALOGV("AudioFlinger used to stop the input here, not stopping with Pulseaudio");
         }
     }
 }
@@ -195,9 +193,8 @@ void RecordTrack::destroy()
         sp<ThreadBase> thread = mThread.promote();
         if (thread != 0) {
             if (mState == ACTIVE || mState == RESUMING) {
-                //AudioSystem::stopInput(thread->id());
+                ALOGV("AudioFlinger used to stop the input here, not stopping with Pulseaudio");
             }
-            //AudioSystem::releaseInput(thread->id());
             Mutex::Autolock _l(thread->mLock);
             RecordThread *recordThread = (RecordThread *) thread.get();
             recordThread->destroyTrack_l(this);

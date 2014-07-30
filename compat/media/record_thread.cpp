@@ -13,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Authored by: Jim Hodapp <jim.hodapp@canonical.com>
  */
 
 #define LOG_NDEBUG 0
@@ -130,26 +132,17 @@ bool RecordThread::threadLoop()
             if (mActiveTrack != 0 && activeTrack != mActiveTrack) {
                 SortedVector<int> tmp;
                 tmp.add(mActiveTrack->uid());
-                //updateWakeLockUids_l(tmp);
             }
             activeTrack = mActiveTrack;
-#if 0
-            if (mActiveTrack == 0 && mConfigEvents.isEmpty()) {
-                standby();
-#else
             if (mActiveTrack == 0) {
-#endif
-
                 if (exitPending()) {
                     break;
                 }
 
-                //releaseWakeLock_l();
                 ALOGV("RecordThread: loop stopping");
                 // go to sleep
                 mWaitWorkCV.wait(mLock);
                 ALOGV("RecordThread: loop starting");
-                //acquireWakeLock_l(mActiveTrack != 0 ? mActiveTrack->uid() : -1);
                 continue;
             }
 
@@ -158,7 +151,6 @@ bool RecordThread::threadLoop()
                     removeTrack_l(mActiveTrack);
                     mActiveTrack.clear();
                 } else if (mActiveTrack->mState == RecordTrack::PAUSING) {
-                    //standby();
                     mActiveTrack.clear();
                     mStartStopCond.broadcast();
                 } else if (mActiveTrack->mState == RecordTrack::RESUMING) {
@@ -188,19 +180,13 @@ bool RecordThread::threadLoop()
             }
 
             buffer.frameCount = mFrameCount;
-            ALOGV("Calling mActiveTrack->getNextBuffer()");
             status_t status = mActiveTrack->getNextBuffer(&buffer);
             if (status == NO_ERROR) {
                 readOnce = true;
                 size_t framesOut = buffer.frameCount;
-                ALOGD("framesOut: %d", framesOut);
                 while (framesOut) {
                     size_t framesIn = mFrameCount - mRsmpInIndex;
-                    ALOGD("framesIn: %d", framesIn);
-                    ALOGD("mFrameCount: %d", mFrameCount);
-                    ALOGD("mRsmpInIndex: %d", mRsmpInIndex);
                     if (framesIn) {
-                        ALOGD("Creating src and dst int8_t pointers");
                         int8_t *src = (int8_t *)mRsmpInBuffer + mRsmpInIndex * mFrameSize;
                         int8_t *dst = buffer.i8 + (buffer.frameCount - framesOut) *
                             mActiveTrack->mFrameSize;
@@ -209,34 +195,27 @@ bool RecordThread::threadLoop()
                         mRsmpInIndex += framesIn;
                         framesOut -= framesIn;
                         if (mChannelCount == mReqChannelCount) {
-                            ALOGD("Doing direct memcpy from src to dst");
                             memcpy(dst, src, framesIn * mFrameSize);
                         } else {
                             if (mChannelCount == 1) {
-                                ALOGD("Upmixing stereo from mono");
                                 upmix_to_stereo_i16_from_mono_i16((int16_t *)dst,
                                         (int16_t *)src, framesIn);
                             } else {
-                                ALOGD("Downmixing mono from stereo");
                                 downmix_to_mono_i16_from_stereo_i16((int16_t *)dst,
                                         (int16_t *)src, framesIn);
                             }
                         }
                     }
-                    ALOGD("framesOut && mFrameCount: %d, mRsmpInIndex: %d", framesOut && mFrameCount, mRsmpInIndex);
                     if (framesOut && mFrameCount == mRsmpInIndex) {
                         void *readInto;
                         if (framesOut == mFrameCount && mChannelCount == mReqChannelCount) {
-                            ALOGD("Using buffer.raw");
                             readInto = buffer.raw;
                             framesOut = 0;
                         } else {
-                            ALOGD("Using mRsmpInBuffer");
                             readInto = mRsmpInBuffer;
                             mRsmpInIndex = 0;
                         }
                         // Read from the named pipe /dev/socket/micshm
-                        ALOGD("Calling this->readPipe()");
                         mBytesRead = readPipe(readInto, mBufferSize);
                         if (mBytesRead <= 0) {
                             if ((mBytesRead < 0) && (mActiveTrack->mState == RecordTrack::ACTIVE))
@@ -244,7 +223,6 @@ bool RecordThread::threadLoop()
                                 ALOGE("Error reading audio input");
                                 // Force input into standby so that it tries to
                                 // recover at next read attempt
-                                //inputStandBy();
                                 usleep(kRecordThreadSleepUs);
                             }
                             mRsmpInIndex = mFrameCount;
@@ -254,7 +232,6 @@ bool RecordThread::threadLoop()
                     }
                 }
                 if (mFramestoDrop == 0) {
-                    ALOGV("Calling releaseBuffer(line: %d)", __LINE__);
                     mActiveTrack->releaseBuffer(&buffer);
                 } else {
                     if (mFramestoDrop > 0) {
@@ -274,12 +251,10 @@ bool RecordThread::threadLoop()
                         }
                     }
                 }
-                //mActiveTrack->clearOverflow();
             }
             // client isn't retrieving buffers fast enough
             else {
-                ALOGW("Client isn't retrieving buffers fast enough, examine this code!");
-#if 0
+                ALOGW("Client isn't retrieving buffers fast enough!");
                 if (!mActiveTrack->setOverflow()) {
                     nsecs_t now = systemTime();
                     if ((now - lastWarning) > kWarningThrottleNs) {
@@ -287,7 +262,6 @@ bool RecordThread::threadLoop()
                         lastWarning = now;
                     }
                 }
-#endif
                 // Release the processor for a while before asking for a new buffer.
                 // This will give the application more chance to read from the buffer and
                 // clear the overflow.
@@ -295,8 +269,6 @@ bool RecordThread::threadLoop()
             }
         }
     }
-
-    //standby();
 
     {
         Mutex::Autolock _l(mLock);
@@ -307,8 +279,6 @@ bool RecordThread::threadLoop()
         mActiveTrack.clear();
         mStartStopCond.broadcast();
     }
-
-    //releaseWakeLock();
 
     ALOGV("RecordThread %p exiting", this);
     return false;
@@ -388,7 +358,6 @@ status_t RecordThread::start(RecordTrack* recordTrack,
 
         recordTrack->mState = RecordTrack::IDLE;
         mActiveTrack = recordTrack;
-        //status_t status = AudioSystem::startInput(mId);
 
         if (status != NO_ERROR) {
             mActiveTrack.clear();
@@ -419,7 +388,6 @@ status_t RecordThread::start(RecordTrack* recordTrack,
     }
 
 startError:
-    //AudioSystem::stopInput(mId);
     clearSyncStartEvent();
     close(m_fifoFd);
     return status;
@@ -472,7 +440,6 @@ status_t RecordThread::getNextBuffer(AudioBufferProvider::Buffer* buffer, int64_
                 ALOGE("RecordThread::getNextBuffer() Error reading audio input");
                 // Force input into standby so that it tries to
                 // recover at next read attempt
-                //inputStandBy();
                 usleep(kRecordThreadSleepUs);
             }
             buffer->raw = NULL;
@@ -512,22 +479,23 @@ void RecordThread::readInputParameters()
     // TODO: these are all hardcoded for right now, they should be
     // obtained through more dynamic means
     mSampleRate = 48000;
-    ALOGD("mSampleRate: %d", mSampleRate);
     mChannelMask = 0x10;   // FIXME: where should this come from?
-    ALOGD("mChannelMask: %d", mChannelMask);
     mChannelCount = popcount(mChannelMask);
-    ALOGD("mChannelCount: %d", mChannelCount);
     mFormat = AUDIO_FORMAT_PCM_16_BIT;
-    ALOGD("mFormat: %d", mFormat);
     mFrameSize = 2;
-    ALOGD("mFrameSize: %d", mFrameSize);
     mBufferSize = MIC_READ_BUF_SIZE * sizeof(int16_t);
-    ALOGD("mBufferSize: %d", mBufferSize);
     mFrameCount = mBufferSize / mFrameSize;
-    ALOGD("mFrameCount: %d", mFrameCount);
     mRsmpInBuffer = new int16_t[mBufferSize];
     mRsmpInIndex = mFrameCount;
-    ALOGD("mRsmpInIndex: %d", mRsmpInIndex);
+
+    ALOGV("mSampleRate: %d", mSampleRate);
+    ALOGV("mChannelMask: %d", mChannelMask);
+    ALOGV("mChannelCount: %d", mChannelCount);
+    ALOGV("mFormat: %d", mFormat);
+    ALOGV("mFrameSize: %d", mFrameSize);
+    ALOGV("mBufferSize: %d", mBufferSize);
+    ALOGV("mFrameCount: %d", mFrameCount);
+    ALOGV("mRsmpInIndex: %d", mRsmpInIndex);
 }
 
 bool RecordThread::openPipe()
@@ -568,7 +536,7 @@ ssize_t RecordThread::readPipe(void *buffer, size_t size)
         readSize = 0;
     }
     else
-        ALOGD("Read in %d bytes into mRsmpInBuffer", readSize);
+        ALOGV("Read in %d bytes into buffer", readSize);
 
     return readSize;
 }

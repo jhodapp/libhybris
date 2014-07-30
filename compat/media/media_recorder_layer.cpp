@@ -74,10 +74,7 @@ public:
     void readAudio()
     {
         REPORT_FUNCTION();
-        ALOGD("read_audio_cb(3): %p, read_audio_context(3): %p", read_audio_cb, read_audio_context);
         if (read_audio_cb != NULL) {
-            ALOGV("Calling read_audio_cb()");
-            ALOGV("read_audio_cb: %p, read_audio_context: %p", read_audio_cb, read_audio_context);
             read_audio_cb(read_audio_context);
         }
         else
@@ -96,7 +93,6 @@ public:
         REPORT_FUNCTION();
         read_audio_cb = cb;
         read_audio_context = context;
-        ALOGD("read_audio_cb(2): %p, read_audio_context(2): %p", cb, context);
     }
 
 private:
@@ -142,7 +138,6 @@ public:
 
         assert(media_recorder_listener != NULL);
         media_recorder_listener->setReadAudioCb(cb, context);
-        ALOGD("read_audio_cb(1): %p, read_audio_context(1): %p", cb, context);
     }
 
 private:
@@ -177,8 +172,6 @@ void android_recorder_set_audio_read_cb(MediaRecorderWrapper *mr, on_recorder_re
         ALOGE("mr must not be NULL");
         return;
     }
-
-    ALOGD("cb(0): %p, context(0): %p", cb, context);
 
     mr->setAudioReadCb(cb, context);
 }

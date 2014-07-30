@@ -13,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Authored by: Jim Hodapp <jim.hodapp@canonical.com>
  */
 
 #define LOG_NDEBUG 0

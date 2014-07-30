@@ -13,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Authored by: Jim Hodapp <jim.hodapp@canonical.com>
  */
 
  #ifndef RECORD_THREAD_H
@@ -81,7 +83,7 @@ public:
             audio_channel_mask_t channelMask,
             audio_io_handle_t id
             );
-    virtual     ~RecordThread();
+    virtual ~RecordThread();
 
     void destroyTrack_l(const sp<RecordTrack>& track);
     void removeTrack_l(const sp<RecordTrack>& track);
@@ -160,31 +162,25 @@ private:
     ssize_t readPipe(void *buffer, size_t size);
     void clearSyncStartEvent();
 
-    //SortedVector < sp<RecordTrack> >    mTracks;
-    // mActiveTrack has dual roles:  it indicates the current active track, and
-    // is used together with mStartStopCond to indicate start()/stop() progress
-    //sp<RecordTrack>                     mActiveTrack;
-    Condition                           mStartStopCond;
+    Condition mStartStopCond;
 
-    // updated by RecordThread::readInputParameters()
-    //AudioResampler                      *mResampler;
     // The named pipe file descriptor
-    int                                 m_fifoFd;
+    int m_fifoFd;
     // interleaved stereo pairs of fixed-point signed Q19.12
-    int32_t                             *mRsmpOutBuffer;
-    int16_t                             *mRsmpInBuffer; // [mFrameCount * mChannelCount]
-    size_t                              mRsmpInIndex;
-    size_t                              mBufferSize;    // stream buffer size for read()
-    const uint32_t                      mReqChannelCount;
-    const uint32_t                      mReqSampleRate;
-    ssize_t                             mBytesRead;
+    int32_t *mRsmpOutBuffer;
+    int16_t *mRsmpInBuffer; // [mFrameCount * mChannelCount]
+    size_t mRsmpInIndex;
+    size_t mBufferSize;    // stream buffer size for read()
+    const uint32_t mReqChannelCount;
+    const uint32_t mReqSampleRate;
+    ssize_t mBytesRead;
     // sync event triggering actual audio capture. Frames read before this event will
     // be dropped and therefore not read by the application.
-    sp<SyncEvent>                       mSyncStartEvent;
+    sp<SyncEvent> mSyncStartEvent;
     // number of captured frames to drop after the start sync event has been received.
     // when < 0, maximum frames to drop before starting capture even if sync event is
     // not received
-    ssize_t                             mFramestoDrop;
+    ssize_t mFramestoDrop;
 };
 
 } // namespace android
