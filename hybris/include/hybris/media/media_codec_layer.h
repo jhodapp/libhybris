@@ -60,9 +60,12 @@ extern "C" {
 
 #ifdef SIMPLE_PLAYER
     int media_codec_configure(MediaCodecDelegate delegate, MediaFormat format, void *nativeWindow, uint32_t flags);
+    int media_codec_configure_decoder(MediaCodecDelegate delegate, MediaFormat format, void *nativeWindow, uint32_t flags);
 #else
     int media_codec_configure(MediaCodecDelegate delegate, MediaFormat format, SurfaceTextureClientHybris stc, uint32_t flags);
+    int media_codec_configure_decoder(MediaCodecDelegate delegate, MediaFormat format, SurfaceTextureClientHybris stc, uint32_t flags);
 #endif
+    int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat format, uint32_t flags);
     int media_codec_set_surface_texture_client(MediaCodecDelegate delegate, SurfaceTextureClientHybris stc);
 
     int media_codec_queue_csd(MediaCodecDelegate delegate, MediaFormat format);

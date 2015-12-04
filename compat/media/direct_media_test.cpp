@@ -358,11 +358,21 @@ void set_video_size_cb(int height, int width, void *context)
 	Width = width;
 }
 
+static bool do_video_encode_test()
+{
+	return true;
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 2) {
-		printf("Usage: direct_media_test <video_to_play>\n");
-		return EXIT_FAILURE;
+		printf("*** Running video encoding test");
+		const bool ret = do_video_encode_test();
+		if (!ret)
+		{
+			printf("FAIL: video encoding test failed");
+			return EXIT_FAILURE;
+		}
 	}
 
 	player = android_media_new_player();

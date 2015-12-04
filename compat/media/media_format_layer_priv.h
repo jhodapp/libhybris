@@ -54,6 +54,12 @@ struct _MediaFormat : public android::RefBase
     android::AString csd_key_name;
     android::sp<android::ABuffer> csd;
 
+    // Specific to encoder
+    int32_t bitrate;
+    int32_t bitrate_mode;
+    int32_t framerate;
+    int32_t iframe_interval;
+
     int32_t stride;
     int32_t slice_height;
     int32_t color_format;

@@ -134,6 +134,7 @@ namespace {
 void decoding_service_init()
 {
     REPORT_FUNCTION();
+    ALOGE("******HERE!!!!!!!!!!!");
 
     // Register the service with Binder ServiceManager
     DecodingService::instantiate();
@@ -198,6 +199,7 @@ void decoding_service_set_client_death_cb(DecodingClientDeathCbHybris cb, uint32
 
 // ----- End of DecodingService C API ----- //
 
+// ----- Begin media_codec C API ----- //
 MediaCodecDelegate media_codec_create_by_codec_name(const char *name)
 {
     REPORT_FUNCTION()
@@ -322,6 +324,24 @@ int media_codec_configure(MediaCodecDelegate delegate, MediaFormat format, Surfa
         return BAD_VALUE;
     }
 
+    if (flags & android::MediaCodec::ConfigureFlags::CONFIGURE_FLAG_ENCODE)
+    {
+        ALOGD("Encoder configure selected");
+        return media_codec_configure_encoder(delegate, format, flags);
+    }
+    else
+    {
+        ALOGD("Decoder configure selected");
+        return media_codec_configure_decoder(delegate, format, stc, flags);
+    }
+}
+
+#ifdef SIMPLE_PLAYER
+int media_codec_configure_decoder(MediaCodecDelegate delegate, MediaFormat format, void *nativeWindow, uint32_t flags)
+#else
+int media_codec_configure_decoder(MediaCodecDelegate delegate, MediaFormat format, SurfaceTextureClientHybris stc, uint32_t flags)
+#endif
+{
     _MediaCodecDelegate *d = get_internal_delegate(delegate);
     if (d == NULL)
         return BAD_VALUE;
@@ -381,6 +401,48 @@ int media_codec_configure(MediaCodecDelegate delegate, MediaFormat format, Surfa
         d->media_codec->configure(aformat, NULL, NULL, flags);
     }
 #endif
+
+    return OK;
+}
+
+int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat format, uint32_t flags)
+{
+    _MediaCodecDelegate *d = get_internal_delegate(delegate);
+    if (d == NULL)
+        return BAD_VALUE;
+
+    _MediaFormat *format_priv = static_cast<_MediaFormat*>(format);
+
+    sp<AMessage> output_format = new AMessage;
+    // Set up the output video format
+    output_format->setString("mime", format_priv->mime.c_str());
+    output_format->setInt32("width", format_priv->width);
+    output_format->setInt32("height", format_priv->height);
+    if (format_priv->max_input_size > 0)
+        output_format->setInt32("max-input-size", format_priv->max_input_size);
+
+    output_format->setInt32("bitrate", format_priv->bitrate);
+    output_format->setInt32("bitrate-mode", format_priv->bitrate_mode);
+    if (format_priv->framerate > 0)
+        output_format->setInt32("framerate", format_priv->framerate);
+    else
+        output_format->setInt32("framerate", 30);
+
+    if (format_priv->iframe_interval > 0)
+        output_format->setInt32("i-frame-interval", format_priv->iframe_interval);
+    else
+        // IFrames every 1 second
+        output_format->setInt32("i-frame-interval", 1);
+
+    output_format->setInt32("prepend-sps-pps-to-idr-frames", 1);
+
+    ALOGV("Encoder output format is '%s'", output_format->debugString(0).c_str());
+
+    status_t err = d->media_codec->configure(
+            output_format,
+            NULL /* nativeWindow */,
+            NULL /* crypto */,
+            android::MediaCodec::CONFIGURE_FLAG_ENCODE);
 
     return OK;
 }
@@ -877,3 +939,5 @@ MediaFormat media_codec_get_output_format(MediaCodecDelegate delegate)
 
     return f;
 }
+
+// ----- End media_codec C API ----- //

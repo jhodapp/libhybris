@@ -167,6 +167,50 @@ int32_t media_format_get_max_input_size(MediaFormat format)
     return mf->max_input_size;
 }
 
+int32_t media_format_get_bitrate(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->bitrate;
+}
+
+int32_t media_format_get_bitrate_mode(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->bitrate_mode;
+}
+
+int32_t media_format_get_framerate(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->framerate;
+}
+
+int32_t media_format_get_iframe_interval(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->iframe_interval;
+}
+
 int32_t media_format_get_stride(MediaFormat format)
 {
     REPORT_FUNCTION()

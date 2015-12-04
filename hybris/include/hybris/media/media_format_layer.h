@@ -41,6 +41,10 @@ extern "C" {
     int32_t media_format_get_width(MediaFormat format);
     int32_t media_format_get_height(MediaFormat format);
     int32_t media_format_get_max_input_size(MediaFormat format);
+    int32_t media_format_get_bitrate(MediaFormat format);
+    int32_t media_format_get_bitrate_mode(MediaFormat format);
+    int32_t media_format_get_framerate(MediaFormat format);
+    int32_t media_format_get_iframe_interval(MediaFormat format);
     int32_t media_format_get_stride(MediaFormat format);
     int32_t media_format_get_slice_height(MediaFormat format);
     int32_t media_format_get_color_format(MediaFormat format);

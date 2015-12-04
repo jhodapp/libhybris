@@ -40,6 +40,12 @@ struct _MediaFormat : public RefBase
     int32_t height;
     int32_t max_input_size;
 
+    // Specific to encoder
+    int32_t bitrate;
+    int32_t bitrate_mode;
+    int32_t framerate;
+    int32_t iframe_interval;
+
     unsigned int refcount;
 };
 
