@@ -34,7 +34,16 @@ extern "C" {
     void media_format_ref(MediaFormat format);
     void media_format_unref(MediaFormat format);
 
-    void media_format_set_byte_buffer(MediaFormat format, const char *key, uint8_t *data, size_t size);
+    bool media_format_set_byte_buffer(MediaFormat format, const char *key, uint8_t *data, size_t size);
+    bool media_format_set_height(MediaFormat format, int32_t height);
+    bool media_format_set_width(MediaFormat format, int32_t width);
+    bool media_format_set_max_input_size(MediaFormat format, int32_t size);
+    bool media_format_set_bitrate(MediaFormat format, int32_t bitrate);
+    bool media_format_set_framerate(MediaFormat format, int32_t framerate);
+    bool media_format_set_iframe_interval(MediaFormat format, int32_t interval);
+    bool media_format_set_stride(MediaFormat format, int32_t stride);
+    bool media_format_set_slice_height(MediaFormat format, int32_t slice_height);
+    bool media_format_set_color_format(MediaFormat format, int32_t color);
 
     const char* media_format_get_mime(MediaFormat format);
     int64_t media_format_get_duration_us(MediaFormat format);

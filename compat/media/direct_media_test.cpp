@@ -17,10 +17,17 @@
  *              Ricardo Salveti de Araujo <ricardo.salveti@canonical.com>
  */
 
+// Uncomment to enable verbose debug output
+#define LOG_NDEBUG 0
+
+#include <hybris/media/media_format_layer.h>
+#include <hybris/media/media_codec_layer.h>
+#include <hybris/media/media_codec_list.h>
 #include <hybris/media/media_compatibility_layer.h>
 #include "direct_media_test.h"
 
 #include <utils/Errors.h>
+#include <utils/Log.h>
 
 #include <hybris/surface_flinger/surface_flinger_compatibility_layer.h>
 
@@ -46,6 +53,250 @@ static int Width = 0, Height = 0;
 static GLfloat positionCoordinates[8];
 
 MediaPlayerWrapper *player = NULL;
+
+class VideoEncodeTest
+{
+    /*
+     * See http://androidxref.com/4.2_r1/xref/frameworks/base/media/java/android/media/MediaCodecInfo.java
+     */
+    struct MediaCodecInfo
+    {
+        char *name = nullptr;
+        size_t name_len = 0;
+        bool is_encoder = false;
+        uint32_t *color_formats = nullptr;
+        size_t num_color_formats = 0;
+        int profile = 0;
+        int level = 0;
+
+        enum ColorFormats
+        {
+            COLOR_FormatYUV420Planar = 19,
+            COLOR_FormatYUV420PackedPlanar = 20,
+            COLOR_FormatYUV420SemiPlanar = 21,
+            COLOR_FormatYUV420PackedSemiPlanar = 39,
+            COLOR_TI_FormatYUV420PackedSemiPlanar = 0x7f000100
+        };
+    };
+
+public:
+    VideoEncodeTest()
+        : m_mediaFormat(nullptr)
+    {}
+
+    virtual ~VideoEncodeTest()
+    {
+        // select_codec() mallocs memory, free it
+        if (m_codecInfo.name)
+            free(m_codecInfo.name);
+        if (m_codecInfo.color_formats)
+            free(m_codecInfo.color_formats);
+
+        if (m_mediaFormat)
+            media_format_destroy(m_mediaFormat);
+    }
+
+    void set_parameters(int32_t height, int32_t width, int32_t bitrate)
+    {
+        if ((width % 16) != 0 || (height % 16) != 0)
+            ALOGW("WARNING: width or height not multiple of 16\n");
+
+        m_mediaFormat = media_format_create_video_format(m_mimeType, width, height, 0, 0);
+        bool ret = media_format_set_bitrate(m_mediaFormat, bitrate);
+        if (!ret)
+            ALOGW("Failed to set bitrate");
+    }
+
+    bool encode_decode_video_from_buffer()
+    {
+        bool ret = false;
+        select_codec(m_mimeType);
+        const uint32_t color_format = select_color_format();
+
+        if (!m_mediaFormat)
+        {
+            ALOGW("m_mediaFormat should not be NULL");
+            return false;
+        }
+
+        ret = media_format_set_max_input_size(m_mediaFormat, 1024);
+        if (!ret)
+        {
+            ALOGW("Failed to set max_input_size");
+            return false;
+        }
+        ret = media_format_set_color_format(m_mediaFormat, color_format);
+        if (!ret)
+        {
+            ALOGW("Failed to set color format");
+            return false;
+        }
+        ret = media_format_set_stride(m_mediaFormat, media_format_get_width(m_mediaFormat));
+        if (!ret)
+        {
+            ALOGW("Failed to set stride");
+            return false;
+        }
+        ret = media_format_set_slice_height(m_mediaFormat, media_format_get_height(m_mediaFormat));
+        if (!ret)
+        {
+            ALOGW("Failed to set slice_height");
+            return false;
+        }
+        // 30 fps
+        ret = media_format_set_framerate(m_mediaFormat, 30);
+        if (!ret)
+        {
+            ALOGW("Failed to set framerate");
+            return false;
+        }
+        // IFrame every 1 second
+        ret = media_format_set_iframe_interval(m_mediaFormat, 1);
+        if (!ret)
+        {
+            ALOGW("Failed to set iframe interval");
+            return false;
+        }
+
+        const bool isEncoder = true;
+        MediaCodecDelegate encoder = media_codec_create_by_codec_type(m_mimeType, isEncoder);
+        ret = media_codec_configure(
+                    encoder,
+                    m_mediaFormat,
+                    nullptr, /* SurfaceTextureClientHybris */
+                    MEDIA_CODEC_CONFIGURE_FLAG_ENCODE);
+        if (ret != android::OK)
+        {
+            ALOGE("Failed to configure encoder correctly");
+            return false;
+        }
+
+        ret = media_codec_start(encoder);
+        if (ret != android::OK)
+        {
+            ALOGE("Failed to start encoder");
+            return false;
+        }
+
+        return true;
+    }
+
+private:
+    bool select_codec(const char *mime)
+    {
+        if (mime == nullptr)
+            return false;
+
+        bool found_codec = false;
+
+        const int32_t codec_count = media_codec_list_count_codecs();
+        ALOGV("Number of codecs: %d", codec_count);
+
+        for (int i=0; i<codec_count; i++)
+        {
+            const bool is_encoder = media_codec_list_is_encoder(i);
+            if (!is_encoder)
+                continue;
+
+            const char *name_str = media_codec_list_get_codec_name(i);
+            const int32_t n_supported_types = media_codec_list_get_num_supported_types(i);
+            ALOGV("Encoder Codec '%s' has %d supported types\n", name_str, n_supported_types);
+            for (int j=0; j<n_supported_types; j++)
+            {
+                const size_t len = media_codec_list_get_nth_supported_type_len(i, j);
+                char supported_type_str[len];
+                const int32_t err = media_codec_list_get_nth_supported_type
+                        (i, supported_type_str, j);
+                supported_type_str[len] = '\0';
+                ALOGV("mime: %s, supported_type_str: %s\n", mime, supported_type_str);
+                if (!err && strstr(mime, supported_type_str) != nullptr)
+                {
+                    ALOGD("**** We found a matching codec for the mimetype '%s': %s", mime, name_str);
+                    size_t name_len = strlen(name_str);
+                    m_codecInfo.name = (char*)malloc(name_len);
+                    m_codecInfo.name_len = name_len;
+                    strncpy(m_codecInfo.name, name_str, name_len);
+                    m_codecInfo.is_encoder = true;
+                    // Only interested in the first matching codec, so no need to search further
+                    found_codec = true;
+                    break;
+                }
+            }
+
+            const bool ret = get_color_formats(i, mime);
+            if (!ret)
+                return false;
+
+            if (found_codec)
+                break;
+        }
+
+        return found_codec;
+    }
+
+    bool get_color_formats(int index, const char *mime)
+    {
+        size_t num_colors = media_codec_list_get_num_color_formats(index, mime);
+        m_codecInfo.color_formats = (uint32_t*)malloc(num_colors);
+        const int ret = media_codec_list_get_codec_color_formats(index, mime, m_codecInfo.color_formats);
+        if (ret != OK)
+        {
+            ALOGW("Failed to get the codec color formats\n");
+            return false;
+        }
+
+        ALOGV("Number of color formats: %d\n", num_colors);
+        for (size_t i=0; i<num_colors; i++)
+            ALOGI("Color format: 0x%X\n", m_codecInfo.color_formats[i]);
+
+        m_codecInfo.num_color_formats = num_colors;
+
+        return true;
+    }
+
+    uint32_t select_color_format()
+    {
+        ALOGV("m_codecInfo.color_formats: %p\n", m_codecInfo.color_formats);
+        ALOGV("m_codecInfo.num_color_formats: %u\n", m_codecInfo.num_color_formats);
+        if (!m_codecInfo.color_formats || m_codecInfo.num_color_formats == 0)
+        {
+            ALOGW("No loaded color formats to select from");
+            return 0;
+        }
+
+        for (size_t i=0; i<m_codecInfo.num_color_formats; i++)
+        {
+            // Use the first known color format from the list of supported formats
+            if (is_recognized_format(m_codecInfo.color_formats[i]))
+            {
+                ALOGD("Selecting color format 0x%X\n", m_codecInfo.color_formats[i]);
+                return m_codecInfo.color_formats[i];
+            }
+        }
+
+        return 0;
+    }
+
+    bool is_recognized_format(uint32_t color_format)
+    {
+        switch (color_format)
+        {
+            // These are the formats we know how to handle for this test
+            case MediaCodecInfo::ColorFormats::COLOR_FormatYUV420Planar:
+            case MediaCodecInfo::ColorFormats::COLOR_FormatYUV420PackedPlanar:
+            case MediaCodecInfo::ColorFormats::COLOR_FormatYUV420SemiPlanar:
+            case MediaCodecInfo::ColorFormats::COLOR_FormatYUV420PackedSemiPlanar:
+            case MediaCodecInfo::ColorFormats::COLOR_TI_FormatYUV420PackedSemiPlanar:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    const char *m_mimeType = "video/avc";
+    MediaCodecInfo m_codecInfo;
+    MediaFormat m_mediaFormat;
+};
 
 void calculate_position_coordinates()
 {
@@ -358,23 +609,35 @@ void set_video_size_cb(int height, int width, void *context)
 	Width = width;
 }
 
-static bool do_video_encode_test()
+/*
+ * Feeds simple raw video frames into the encoder and makes sure that it produces
+ * sane results.
+ *
+ * Test is based on:
+ * https://android.googlesource.com/platform/cts/+/jb-mr2-release/tests/tests/media/src/android/media/cts/EncodeDecodeTest.java
+ */
+static bool do_video_encode_decode_test()
 {
-	return true;
+    VideoEncodeTest test;
+    // 720p 6 MB/s
+    test.set_parameters(1280, 720, 6000000);
+	return test.encode_decode_video_from_buffer();
 }
 
 int main(int argc, char **argv)
 {
+    ALOGE("DIRECT MEDIA TEST\n");
 	if (argc < 2) {
-		printf("*** Running video encoding test");
-		const bool ret = do_video_encode_test();
+		printf("*** Running video encoding/decoding test\n");
+		const bool ret = do_video_encode_decode_test();
 		if (!ret)
 		{
-			printf("FAIL: video encoding test failed");
+			printf("FAIL: video encoding test failed\n");
 			return EXIT_FAILURE;
 		}
 	}
 
+#if 0
 	player = android_media_new_player();
 	if (player == NULL) {
 		printf("Problem creating new media player.\n");
@@ -422,6 +685,7 @@ int main(int argc, char **argv)
 	}
 
 	android_media_stop(player);
+#endif
 
 	return EXIT_SUCCESS;
 }

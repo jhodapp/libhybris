@@ -102,6 +102,8 @@ LOCAL_SRC_FILES:= \
 LOCAL_MODULE:= direct_media_test
 LOCAL_MODULE_TAGS := optional
 
+LOCAL_CFLAGS += -std=gnu++0x
+
 LOCAL_C_INCLUDES := \
 	$(HYBRIS_PATH)/include \
 	bionic \
@@ -117,6 +119,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libmedia_compat_layer \
 	libcutils \
 	libutils \
+	liblog \
 	libbinder \
 	libhardware \
 	libui \

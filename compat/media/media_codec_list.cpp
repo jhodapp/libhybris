@@ -191,7 +191,7 @@ int media_codec_list_get_nth_codec_profile_level(size_t index, const char *type,
     if (err != OK)
     {
         ALOGE("Failed to get the nth codec profile level (err: %d)", err);
-        return 0;
+        return BAD_TYPE;
     }
 
     pro_level->profile = profile_levels[n].mProfile;

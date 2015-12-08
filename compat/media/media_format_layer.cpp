@@ -98,18 +98,127 @@ void media_format_unref(MediaFormat format)
         mf->refcount--;
 }
 
-void media_format_set_byte_buffer(MediaFormat format, const char *key, uint8_t *data, size_t size)
+bool media_format_set_byte_buffer(MediaFormat format, const char *key, uint8_t *data, size_t size)
 {
     REPORT_FUNCTION()
 
     _MediaFormat *mf = get_internal_format(format);
     if (mf == NULL)
-        return;
+        return false;
     if (key == NULL || data == NULL || size == 0)
-        return;
+        return false;
 
     mf->csd_key_name = AString(key);
     mf->csd = sp<ABuffer>(new ABuffer(data, size));
+    return true;
+}
+
+bool media_format_set_height(MediaFormat format, int32_t height)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->height = height;
+    return true;
+}
+
+bool media_format_set_width(MediaFormat format, int32_t width)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->width = width;
+    return true;
+}
+
+bool media_format_set_max_input_size(MediaFormat format, int32_t size)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->max_input_size = size;
+    return true;
+}
+
+bool media_format_set_bitrate(MediaFormat format, int32_t bitrate)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->bitrate = bitrate;
+    return true;
+}
+
+bool media_format_set_framerate(MediaFormat format, int32_t framerate)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->framerate = framerate;
+    return true;
+}
+
+bool media_format_set_iframe_interval(MediaFormat format, int32_t interval)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->iframe_interval = interval;
+    return true;
+}
+
+bool media_format_set_stride(MediaFormat format, int32_t stride)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->stride = stride;
+    return true;
+}
+
+bool media_format_set_slice_height(MediaFormat format, int32_t slice_height)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->slice_height = slice_height;
+    return true;
+}
+
+bool media_format_set_color_format(MediaFormat format, int32_t color)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->color_format = color;
+    return true;
 }
 
 const char* media_format_get_mime(MediaFormat format)

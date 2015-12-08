@@ -236,7 +236,7 @@ MediaCodec* media_codec_get(MediaCodecDelegate delegate)
 }
 #endif
 
-MediaCodecDelegate media_codec_create_by_codec_type(const char *type)
+MediaCodecDelegate media_codec_create_by_codec_type(const char *type, bool is_encoder)
 {
     REPORT_FUNCTION()
 
@@ -246,7 +246,7 @@ MediaCodecDelegate media_codec_create_by_codec_type(const char *type)
         return NULL;
     }
 
-    ALOGD("Creating codec by type '%s'", type);
+    ALOGD("Creating codec by type '%s', is_encoder: %d", type, is_encoder);
 
     ProcessState::self()->startThreadPool();
 
@@ -254,7 +254,7 @@ MediaCodecDelegate media_codec_create_by_codec_type(const char *type)
     d->looper = new ALooper;
     d->looper->start();
 
-    d->media_codec = android::MediaCodec::CreateByType(d->looper, type, false);
+    d->media_codec = android::MediaCodec::CreateByType(d->looper, type, is_encoder);
 
     return d;
 }
@@ -422,11 +422,19 @@ int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat forma
         output_format->setInt32("max-input-size", format_priv->max_input_size);
 
     output_format->setInt32("bitrate", format_priv->bitrate);
-    output_format->setInt32("bitrate-mode", format_priv->bitrate_mode);
+    // 2 == OMX_Video_ControlRateConstant
+    output_format->setInt32("bitrate-mode", 2);
+    //output_format->setInt32("bitrate-mode", format_priv->bitrate_mode);
     if (format_priv->framerate > 0)
         output_format->setInt32("framerate", format_priv->framerate);
     else
         output_format->setInt32("framerate", 30);
+
+    if (format_priv->stride > 0)
+        output_format->setInt32("stride", format_priv->stride);
+
+    if (format_priv->slice_height > 0)
+        output_format->setInt32("slice_height", format_priv->slice_height);
 
     if (format_priv->iframe_interval > 0)
         output_format->setInt32("i-frame-interval", format_priv->iframe_interval);
@@ -434,7 +442,9 @@ int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat forma
         // IFrames every 1 second
         output_format->setInt32("i-frame-interval", 1);
 
-    output_format->setInt32("prepend-sps-pps-to-idr-frames", 1);
+    output_format->setInt32("store-metadata-in-buffers", true);
+
+    //output_format->setInt32("prepend-sps-pps-to-idr-frames", 1);
 
     ALOGV("Encoder output format is '%s'", output_format->debugString(0).c_str());
 
@@ -444,7 +454,7 @@ int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat forma
             NULL /* crypto */,
             android::MediaCodec::CONFIGURE_FLAG_ENCODE);
 
-    return OK;
+    return err;
 }
 
 int media_codec_set_surface_texture_client(MediaCodecDelegate delegate, SurfaceTextureClientHybris stc)
