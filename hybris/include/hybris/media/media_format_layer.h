@@ -44,6 +44,8 @@ extern "C" {
     bool media_format_set_stride(MediaFormat format, int32_t stride);
     bool media_format_set_slice_height(MediaFormat format, int32_t slice_height);
     bool media_format_set_color_format(MediaFormat format, int32_t color);
+    bool media_format_set_profile_idc(MediaFormat format, int32_t profile);
+    bool media_format_set_level_idc(MediaFormat format, int32_t level);
 
     const char* media_format_get_mime(MediaFormat format);
     int64_t media_format_get_duration_us(MediaFormat format);
@@ -57,10 +59,14 @@ extern "C" {
     int32_t media_format_get_stride(MediaFormat format);
     int32_t media_format_get_slice_height(MediaFormat format);
     int32_t media_format_get_color_format(MediaFormat format);
+    int32_t media_format_get_profile_idc(MediaFormat format);
+    int32_t media_format_get_level_idc(MediaFormat format);
     int32_t media_format_get_crop_left(MediaFormat format);
     int32_t media_format_get_crop_right(MediaFormat format);
     int32_t media_format_get_crop_top(MediaFormat format);
     int32_t media_format_get_crop_bottom(MediaFormat format);
+    int32_t media_format_get_crop_width(MediaFormat format);
+    int32_t media_format_get_crop_height(MediaFormat format);
 
     // TODO: Add getter for CSD buffer
 

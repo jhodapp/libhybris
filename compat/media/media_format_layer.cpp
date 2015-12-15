@@ -221,6 +221,30 @@ bool media_format_set_color_format(MediaFormat format, int32_t color)
     return true;
 }
 
+bool media_format_set_profile_idc(MediaFormat format, int32_t profile)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->profile_idc = profile;
+    return true;
+}
+
+bool media_format_set_level_idc(MediaFormat format, int32_t level)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return false;
+
+    mf->level_idc = level;
+    return true;
+}
+
 const char* media_format_get_mime(MediaFormat format)
 {
     REPORT_FUNCTION()
@@ -353,6 +377,28 @@ int32_t media_format_get_color_format(MediaFormat format)
     return mf->color_format;
 }
 
+int32_t media_format_get_profile_idc(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->profile_idc;
+}
+
+int32_t media_format_get_level_idc(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->level_idc;
+}
+
 int32_t media_format_get_crop_left(MediaFormat format)
 {
     REPORT_FUNCTION()
@@ -395,4 +441,26 @@ int32_t media_format_get_crop_bottom(MediaFormat format)
         return 0;
 
     return mf->crop_bottom;
+}
+
+int32_t media_format_get_crop_height(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->crop_height;
+}
+
+int32_t media_format_get_crop_width(MediaFormat format)
+{
+    REPORT_FUNCTION()
+
+    _MediaFormat *mf = get_internal_format(format);
+    if (mf == NULL)
+        return 0;
+
+    return mf->crop_width;
 }

@@ -42,6 +42,8 @@ struct _MediaFormat : public android::RefBase
         stride(0),
         slice_height(0),
         color_format(0),
+        profile_idc(0),
+        level_idc(0),
         crop_left(0),
         crop_right(0),
         crop_top(0),
@@ -67,10 +69,14 @@ struct _MediaFormat : public android::RefBase
     int32_t stride;
     int32_t slice_height;
     int32_t color_format;
+    int32_t profile_idc;
+    int32_t level_idc;
     int32_t crop_left;
     int32_t crop_right;
     int32_t crop_top;
     int32_t crop_bottom;
+    int32_t crop_width;
+    int32_t crop_height;
 
     unsigned int refcount;
 };

@@ -22,9 +22,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-//#ifdef SIMPLE_PLAYER
 #include <media/stagefright/MediaCodec.h>
-//#endif
 
 #include <hybris/media/media_format_layer.h>
 #include <hybris/media/surface_texture_client_hybris.h>
@@ -35,6 +33,15 @@ extern "C" {
 
     static const int32_t MEDIA_CODEC_CONFIGURE_FLAG_ENCODE
             = android::MediaCodec::ConfigureFlags::CONFIGURE_FLAG_ENCODE;
+    static const int32_t MEDIA_CODEC_BUFFER_FLAG_CODEC_CONFIG
+            = android::MediaCodec::BUFFER_FLAG_CODECCONFIG;
+    static const int32_t MEDIA_CODEC_BUFFER_FLAG_END_OF_STREAM = 4;
+    enum MediaCodecStatus
+    {
+        INFO_TRY_AGAIN_LATER = -1,
+        INFO_OUTPUT_FORMAT_CHANGED = -2,
+        INFO_OUTPUT_BUFFERS_CHANGED = -3
+    };
     typedef void* MediaCodecDelegate;
     typedef void* DSSessionWrapperHybris;
 

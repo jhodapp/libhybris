@@ -426,15 +426,18 @@ int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat forma
     output_format->setInt32("bitrate-mode", 2);
     //output_format->setInt32("bitrate-mode", format_priv->bitrate_mode);
     if (format_priv->framerate > 0)
-        output_format->setInt32("framerate", format_priv->framerate);
+        output_format->setInt32("frame-rate", format_priv->framerate);
     else
-        output_format->setInt32("framerate", 30);
+        output_format->setInt32("frame-rate", 30);
 
     if (format_priv->stride > 0)
         output_format->setInt32("stride", format_priv->stride);
 
     if (format_priv->slice_height > 0)
-        output_format->setInt32("slice_height", format_priv->slice_height);
+        output_format->setInt32("slice-height", format_priv->slice_height);
+
+    if (format_priv->color_format > 0)
+        output_format->setInt32("color-format", format_priv->color_format);
 
     if (format_priv->iframe_interval > 0)
         output_format->setInt32("i-frame-interval", format_priv->iframe_interval);
@@ -442,9 +445,13 @@ int media_codec_configure_encoder(MediaCodecDelegate delegate, MediaFormat forma
         // IFrames every 1 second
         output_format->setInt32("i-frame-interval", 1);
 
-    output_format->setInt32("store-metadata-in-buffers", true);
-
     //output_format->setInt32("prepend-sps-pps-to-idr-frames", 1);
+
+    //output_format->setInt32("store-metadata-in-buffers", false);
+
+    output_format->setInt32("profile-idc", format_priv->profile_idc);
+    output_format->setInt32("level-idc", format_priv->level_idc);
+
 
     ALOGV("Encoder output format is '%s'", output_format->debugString(0).c_str());
 
@@ -941,11 +948,11 @@ MediaFormat media_codec_get_output_format(MediaCodecDelegate delegate)
     CHECK(msg_format->findString("mime", &f->mime));
     CHECK(msg_format->findInt32("width", &f->width));
     CHECK(msg_format->findInt32("height", &f->height));
-    CHECK(msg_format->findInt32("stride", &f->stride));
-    CHECK(msg_format->findInt32("slice-height", &f->slice_height));
-    CHECK(msg_format->findInt32("color-format", &f->color_format));
+    msg_format->findInt32("stride", &f->stride);
+    msg_format->findInt32("slice-height", &f->slice_height);
+    msg_format->findInt32("color-format", &f->color_format);
     Rect crop;
-    CHECK(msg_format->findRect("crop", &crop.left, &crop.top, &crop.right, &crop.bottom));
+    msg_format->findRect("crop", &crop.left, &crop.top, &crop.right, &crop.bottom);
 
     return f;
 }
